@@ -1,7 +1,7 @@
 import ollama
 import os
 
-model = "mitra:latest"
+model = "llama3.2:3b"
 
 # Paths to input and output files
 input_file = "./data/grocery_list.txt"

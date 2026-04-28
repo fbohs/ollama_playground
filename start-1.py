@@ -3,7 +3,7 @@ import json
 
 url = "http://localhost:11434/api/generate"
 data = {
-    "model": "mitra:latest",
+    "model": "llama3.2:3b",
     "prompt": "Tell me a short story and make it a funny one."
 }
 

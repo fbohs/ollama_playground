@@ -11,3 +11,6 @@ fastembed
 pikepdf
 sentence-transformers
 elevenlabs
+langchain-chroma
+chromadb
+streamlit

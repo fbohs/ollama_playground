@@ -10,7 +10,7 @@ from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_community.document_loaders import OnlinePDFLoader
 
 doc_path = "./data/BOI.pdf"
-model = "mitra:latest"
+model = "llama3.2:3b"
 
 # Local PDF file uploads
 if doc_path:
@@ -48,7 +48,7 @@ from langchain_chroma import Chroma
 vector_db = Chroma(
     collection_name="simple_rag",
     embedding_function=embeddings,
-    persist_directory="./chroma_langchain_db",  # Where to save data locally, remove if not necessary
+    persist_directory="./chroma_db",  # Where to save data locally, remove if not necessary
 )
 document_ids = vector_db.add_documents(documents=documentDataChunks)
 
@@ -56,61 +56,39 @@ print("done adding to vector database....")
 
 
 ## === Retrieval ===
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from langchain_ollama import ChatOllama
 
 from langchain_core.runnables import RunnablePassthrough
-from langchain.retrievers.multi_query import MultiQueryRetriever
 
 # set up our model to use
 llm = ChatOllama(model=model)
 
-# a simple technique to generate multiple questions from a single question and then retrieve documents
-# based on those questions, getting the best of both worlds.
-QUERY_PROMPT = PromptTemplate(
-    input_variables=["question"],
-    template="""You are an AI language model assistant. Your task is to generate five
-    different versions of the given user question to retrieve relevant documents from
-    a vector database. By generating multiple perspectives on the user question, your
-    goal is to help the user overcome some of the limitations of the distance-based
-    similarity search. Provide these alternative questions separated by newlines.
-    Original question: {question}""",
+# Use standard retriever
+retriever = vector_db.as_retriever()
+
+# RAG prompt
+template = """Answer the question based ONLY on the following context:
+{context}
+Question: {question}
+"""
+
+prompt = ChatPromptTemplate.from_template(template)
+
+chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
 )
 
-retriever = MultiQueryRetriever.from_llm(
-    vector_db.as_retriever(), llm, prompt=QUERY_PROMPT
-)
+# You can change the question here to test different queries
+question = "how to report BOI?"
+print(f"Question: {question}")
 
-from langchain.tools import tool
-retrieved_docs = vector_db.similarity_search(query, k=2)
-serialized = "\n\n".join(
-    (f"Source: {doc.metadata}\nContent: {doc.page_content}")
-    for doc in retrieved_docs
-)
+res = chain.invoke(question)
 
-# # RAG prompt
-# template = """Answer the question based ONLY on the following context:
-# {context}
-# Question: {question}
-# """
-
-# prompt = ChatPromptTemplate.from_template(template)
-
-
-# chain = (
-#     {"context": retriever, "question": RunnablePassthrough()}
-#     | prompt
-#     | llm
-#     | StrOutputParser()
-# )
-
-
-# # res = chain.invoke(input=("what is the document about?",))
-# # res = chain.invoke(
-# #     input=("what are the main points as a business owner I should be aware of?",)
-# # )
-# res = chain.invoke(input=("how to report BOI?",))
-
-# print(res)
+print("\nAnswer:")
+print(res)
