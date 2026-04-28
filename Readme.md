@@ -9,5 +9,6 @@ This is a simple Ollama playground to test the Ollama API.
 3. Run the script
 
 ## Usage
-
-    python start-1.py
+    python3 -m venv .venv
+    pip install -r requirements.txt
+    python3 start-1.py
